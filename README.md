@@ -24,6 +24,28 @@ and 1,373 merged PRs in eight months ([CASE.md](CASE.md)).
 | 5 | **A contract for the coding agent** | Quality rules the agent reads on every task: inspect first, never commit to main, every PR updates the backlog, security constraints as conditions. A pre-push hook and a PR checklist. | [agent/](agent/) |
 | 6 | **Incident → guard** | A production incident ends with a guard in the same PR, so its class of failure cannot come back. Measured by six metrics with a day-zero baseline. | [metrics/](metrics/) |
 
+## Install as a Claude Code plugin
+
+In Claude Code:
+
+```
+/plugin marketplace add Kamtomir/mainstay
+/plugin install mainstay@mainstay
+```
+
+Then run `/mainstay:setup` in the repository you want to protect. The skill asks
+which layers to install, copies the guard helpers, writes the first guards for
+your codebase (API routes check the session; no server keys or regex lookbehind
+in client code; a ratchet on `as any` and `@ts-ignore` at today's counts), adds
+the guards-first workflow, the pre-push hook and a CLAUDE.md contract, then runs
+the guards and shows what they found. It fixes nothing and commits nothing
+without your yes.
+
+The plugin is that one skill and a copy of the files it installs
+([plugins/mainstay](plugins/mainstay)), kept identical to the harness by
+[plugin.test.ts](plugin.test.ts). Installing it runs no package install and adds
+no hooks or MCP servers to your sessions.
+
 ## 15-minute setup for a TypeScript repository
 
 Clone this repository next to yours (`git clone <this repo's URL> ../mainstay`),
@@ -110,7 +132,11 @@ mainstay/
     baseline.mjs               PRs, CI time, red share, flaky signal from the GitHub API
     METRICS.md                 the six metrics and their definitions
   examples/next-api/           a two-route app where the surface guard fails on purpose
+  .claude-plugin/              the Claude Code marketplace: one plugin, plugins/mainstay
+  plugins/mainstay/            the plugin: the setup skill and a copy of the files it installs
+                               (npm run plugin:sync after changing them)
   mainstay.guard.test.ts       the harness's own guards
+  plugin.test.ts               the plugin's manifests, its surface and its copy of the harness
 ```
 
 ## Running it
@@ -226,3 +252,5 @@ mainstay — открытый харнес «системы качества д�
 демо-гарды падают намеренно и проверяются как «ожидаемо красные»; `npm run red`
 показывает настоящие падения. Референсное внедрение — Catch Club (закрытый код),
 цифры и команды воспроизведения — в CASE.md. Лицензия MIT.
+Ставится как плагин Claude Code: `/plugin marketplace add Kamtomir/mainstay`,
+`/plugin install mainstay@mainstay`, затем в своём репозитории `/mainstay:setup`.

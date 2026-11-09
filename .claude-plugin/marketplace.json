@@ -1,0 +1,18 @@
+{
+  "name": "mainstay",
+  "owner": {
+    "name": "Kamil Dashdamirov",
+    "url": "https://github.com/Kamtomir"
+  },
+  "metadata": {
+    "description": "mainstay, a quality system for AI-assisted development, as a Claude Code plugin."
+  },
+  "plugins": [
+    {
+      "name": "mainstay",
+      "source": "./plugins/mainstay",
+      "description": "Sets up the mainstay harness in your repository: invariant guards on Vitest, a ratchet on type escapes, a guards-first CI workflow, a pre-push hook and a CLAUDE.md engineering contract.",
+      "category": "development"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "mainstay",
+  "description": "A quality system for AI-assisted development. Its setup skill installs invariant guards on Vitest, a ratchet on type escapes, a guards-first CI workflow, a pre-push hook and a CLAUDE.md engineering contract in your repository.",
+  "author": {
+    "name": "Kamil Dashdamirov",
+    "url": "https://github.com/Kamtomir"
+  },
+  "homepage": "https://github.com/Kamtomir/mainstay",
+  "repository": "https://github.com/Kamtomir/mainstay",
+  "license": "MIT",
+  "keywords": ["quality", "guards", "vitest", "ci", "github-actions", "ratchet", "claude-md", "ai-assisted-development"]
+}

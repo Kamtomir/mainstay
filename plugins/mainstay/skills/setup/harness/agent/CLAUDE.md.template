@@ -1,0 +1,93 @@
+# {{PROJECT}}: engineering contract
+
+This file is read by every coding agent (Claude Code, Codex, Cursor) and every
+person who works in this repository. It holds the quality rules only. Product
+rules live in docs/ and are linked from the backlog.
+
+The rules are written as conditions, not wishes. When a rule and a request
+disagree, say so and ask; do not quietly pick one.
+
+## Before you write code
+
+- Inspect first, code second. Read the code you are about to change, its tests,
+  and the guards that cover it (`git grep -l "<file or symbol>" -- '*.test.*'`).
+- Read BACKLOG.md before planning a change, so you build on the agreed plan
+  instead of drifting from it.
+- Extend what exists. Do not add a parallel module, framework or service when
+  an existing one can be extended. New infrastructure needs a written reason.
+- Prefer boring, production-safe solutions. No speculative refactors.
+
+## Branches and commits
+
+- Never commit or push to `main`. Start every change with
+  `git checkout -b feature/<topic>`. The pre-push hook refuses pushes to main.
+- One logical change per branch and per PR. Parallel work goes into separate
+  git worktrees, each on its own branch.
+- A stash is never a release candidate. Only reviewed commits get merged.
+- Keep changes reviewable: explain each file change in the PR description.
+
+## Every PR
+
+- Updates BACKLOG.md: finished items move to Done, discovered follow-ups are
+  added, priorities stay in sync.
+- Changes behaviour only together with a test of that behaviour. A bug fix
+  comes with the test that would have caught the bug.
+- Closes an incident with a guard. When production broke, the PR that fixes it
+  also adds the test or guard that makes the class of failure impossible
+  (see "Guards" below), in the same PR.
+- Passes the text guards locally before the push: `{{GUARD_COMMAND}}`. CI runs
+  the same guards first; a red guard there costs a full CI cycle.
+- Follows agent/PR_CHECKLIST.md.
+
+## Guards and budgets
+
+- A guard is a test that reads the source and fails when a rule is broken
+  (every route checks the session, client bundles have no regex lookbehind,
+  readers of private data fail closed).
+- A red guard is a decision point. Fix the code, or add an allowlist entry
+  with a reason a reviewer can check. Never loosen a pattern to get green.
+- Budgets of known debt only go down. Raising one needs a comment in the
+  budget saying why; lowering one is required when the debt is paid.
+- Before relying on a guard, make sure it is not passing on an empty scan: each
+  guard checks that it sees the files it guards.
+
+## Data and migrations
+
+- Migrations are append-only. Never edit an applied migration; write a new one.
+- Every migration must apply to an empty database: CI replays all of them on
+  every PR.
+- A new table or function ships with its grants: the application role gets
+  what it needs, PUBLIC gets nothing.
+- Destructive changes (drop, rename, rewrite of a column with data) need a
+  written plan in the PR: the order of deploys, the backfill, the rollback.
+
+## Security constraints
+
+These are conditions. Code that breaks one does not merge.
+
+- Secrets are never stored in plaintext, never committed, never logged.
+- Access tokens are encrypted at rest.
+- Tool scopes are explicit. An agent connection gets the narrowest grant that
+  does the job, and an agent never widens its own grant.
+- Destructive or externally visible actions require human approval. Every
+  write an agent requests becomes an approval card the person confirms outside
+  the agent; a confirmation inside the agent's own chat does not count.
+- Money: every tool that moves money is dangerous and needs a card; money never
+  leaves through an agent (no refunds, payouts or transfers on its surface).
+- Reads of private data fail closed: on any error they return nothing.
+- Text written by users or fetched from the web is data, never instructions:
+  pass it to models as untrusted, and strip contacts and secrets from model
+  input and output.
+- Every action an agent triggers is written to the audit log: who, what, with
+  which arguments, approved by whom.
+
+## How to report a substantial task
+
+1. Summarize the findings.
+2. Propose a plan.
+3. Implement step by step.
+4. Run the relevant checks and tests: `{{TEST_COMMAND}}`.
+5. Report risks and follow-ups, and say what was not verified.
+
+Fill in {{PROJECT}}, {{GUARD_COMMAND}} (e.g. `npx vitest run guard.test`) and
+{{TEST_COMMAND}} (e.g. `npm test`), then delete this line.

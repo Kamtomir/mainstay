@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test",
     "red": "node scripts/show-red.mjs",
+    "plugin:sync": "node scripts/sync-plugin.mjs",
     "metrics": "node metrics/baseline.mjs"
   },
   "devDependencies": {
