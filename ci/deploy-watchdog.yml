@@ -1,0 +1,73 @@
+# Deploy watchdog: is the tip of main actually in production?
+#
+# It catches the failure that looks like success: the PR is merged, CI on the
+# branch was green, and production silently stays on the previous commit
+# because the push event was lost or the deploy failed. In the reference
+# deployment one such case lived 11 hours before anyone noticed.
+#
+# Schedule only, on purpose: the failure it catches is a lost push event, and an
+# `on: push` trigger would be lost the same way. Every two hours is a cost
+# trade-off on private repositories (each run is billed as a full minute);
+# worst-case detection is THRESHOLD_MIN plus the interval.
+#
+# It reads GitHub Deployments, which most hosts write for every production
+# deploy (Vercel, Netlify, Render, GitHub Pages...), with the workflow's own
+# token: no secrets. On a miss it opens one issue per commit and fails the run;
+# when production catches up it closes the issue.
+#
+# Install: copy to .github/workflows/deploy-watchdog.yml and
+# ci/deploy-watchdog.mjs to .github/scripts/. Set ENVIRONMENTS to the exact
+# names of your production environments.
+name: Deploy watchdog
+
+on:
+  schedule:
+    - cron: "17 */2 * * *" # off the hour: the top of the hour is GitHub's busiest queue
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Check this commit instead of the tip of main
+        required: false
+        type: string
+      dry_run:
+        description: Do not open or close issues (manual runs are usually diagnostic)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  deployments: read
+  issues: write
+
+concurrency:
+  group: deploy-watchdog
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Is main in production?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The watchdog walks back up to LOOKBACK commits. A manual check of an
+          # arbitrary commit needs the full history. Quote the numbers: in an
+          # expression 0 is falsy and `inputs.sha && 0 || 60` would give 60.
+          fetch-depth: ${{ inputs.sha && '0' || '60' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the newest deployable commit
+        run: node .github/scripts/deploy-watchdog.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # Exact environment names. "Preview – web" must never count as "Production – web".
+          ENVIRONMENTS: Production
+          # Paths whose changes do not deploy. Keep it identical to your host's ignore rule.
+          IGNORE_PATHS: docs/ *.md
+          THRESHOLD_MIN: "25"
+          LOOKBACK: "30"
+          SHA_OVERRIDE: ${{ inputs.sha }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

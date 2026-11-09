@@ -1,0 +1,125 @@
+# Integration tests on a real Postgres, every migration applied from scratch.
+#
+# Why a real database. Mocks never compile a plpgsql body (Postgres checks it
+# lazily, on the first call), never enforce a CHECK constraint and never notice
+# a missing GRANT. Replaying the whole migration history on an empty database
+# on every PR proves that a new environment, a restore or a teammate's laptop
+# gets the schema production has.
+#
+# Two variants, chosen by the caller:
+#   service   a postgres:17 service container; the runner picks the host port
+#   supabase  the Supabase CLI local stack (auth schema, roles, extensions)
+#
+# Install: copy to .github/workflows/integration-postgres.yml and
+# ci/migrations/apply-migrations.sh to .github/scripts/. Call it from
+# guard-first.yml, or run it by hand from the Actions tab.
+name: Integration (Postgres)
+
+on:
+  workflow_call:
+    inputs:
+      variant:
+        description: service (plain Postgres) or supabase (Supabase CLI)
+        type: string
+        default: service
+      migrations-dir:
+        description: Directory of NNNN_name.sql files
+        type: string
+        default: db/migrations
+  workflow_dispatch:
+    inputs:
+      variant:
+        type: choice
+        options: [service, supabase]
+        default: service
+      migrations-dir:
+        type: string
+        default: db/migrations
+
+permissions:
+  contents: read
+
+jobs:
+  service:
+    name: Postgres service
+    if: inputs.variant == 'service'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          # A throwaway container that lives for this job only: not a secret.
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+        ports:
+          - 5432/tcp # no fixed host port: the runner picks a free one
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/app_test
+      MIGRATIONS_DIR: ${{ inputs.migrations-dir }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply every migration to the empty database
+        run: .github/scripts/apply-migrations.sh "$TEST_DATABASE_URL"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Integration tests
+        run: npm run test:integration
+
+  supabase:
+    name: Supabase local stack
+    if: inputs.variant == 'supabase'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # The stack binds a block of ports from supabase/config.toml. That block
+      # sits inside Linux's ephemeral range, so an outgoing connection made a
+      # moment earlier (git, npm, the image pull) can hold one of them and the
+      # database fails with "address already in use". Reserve the block first.
+      - name: Reserve the stack's ports
+        run: |
+          ports=$(grep -E '^[[:space:]]*[a-z_]*port[[:space:]]*=' supabase/config.toml | grep -oE '[0-9]+' | sort -n)
+          sudo sysctl -w net.ipv4.ip_local_reserved_ports="$(echo "$ports" | head -1)-$(echo "$ports" | tail -1)"
+      # Pin the CLI. With `latest` the action asks the GitHub API for the newest
+      # release without a token and can hit the shared rate limit. Update the
+      # number by hand and wait for a green run.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      # `supabase db start` applies supabase/migrations itself and keys them by
+      # the numeric prefix, so two files with the same number (two branches)
+      # stop it. Start with the directory hidden; apply by full filename below.
+      - name: Start the database without auto-applying
+        run: |
+          mv supabase/migrations "$RUNNER_TEMP/migrations"
+          mkdir -p supabase/migrations
+          supabase db start
+          rmdir supabase/migrations
+          mv "$RUNNER_TEMP/migrations" supabase/migrations
+      - name: Read the database URL from the CLI
+        run: supabase status -o env | sed -n 's/^DB_URL=/TEST_DATABASE_URL=/p' | tr -d '"' >> "$GITHUB_ENV"
+      - name: Apply every migration
+        run: .github/scripts/apply-migrations.sh "$TEST_DATABASE_URL"
+        env:
+          MIGRATIONS_DIR: supabase/migrations
+          LEDGER_TABLE: supabase_migrations.schema_migrations
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Integration tests
+        run: npm run test:integration
+        env:
+          MIGRATIONS_DIR: supabase/migrations
+          LEDGER_TABLE: supabase_migrations.schema_migrations

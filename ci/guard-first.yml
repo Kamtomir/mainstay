@@ -1,0 +1,107 @@
+# Guard-first CI: the cheapest signal first, the expensive ones only when needed.
+#
+#   should-run   ~15 s   skip a push to main whose file tree already passed on its PR
+#   guards       < 2 min source guards (*.guard.test.ts): no database, no build
+#   test-build           typecheck, unit tests, production build
+#   integration          a real Postgres, every migration from scratch;
+#                        runs in parallel with test-build
+#
+# A red guard stops the run before the long jobs start: the first failure an
+# author sees is the one that names the file and the rule.
+#
+# Install: copy this file to .github/workflows/ci.yml, ci/should-run.sh to
+# .github/scripts/, and ci/integration-postgres.yml next to this file. Adjust
+# the npm scripts to your repository. No secrets are needed.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"]
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"]
+# If your host skips builds for some paths (an ignore command or rule), keep
+# this list identical to that rule: two copies of one rule drift apart.
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read # should-run asks which PR a push came from
+  actions: read # ... and whether that PR's head has a green run
+
+jobs:
+  should-run:
+    name: Should CI run?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: decide
+        run: .github/scripts/should-run.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+          WORKFLOW: ci.yml
+
+  guards:
+    name: Guards
+    needs: should-run
+    if: needs.should-run.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Every *.guard.test.ts file. A substring filter, so paths with [id] or
+      # (group) segments need no quoting.
+      - name: Source guards
+        run: npx vitest run guard.test
+
+  test-build:
+    name: Tests + build
+    needs: guards
+    runs-on: ubuntu-latest
+    # Set it from your slowest green run plus a margin. A hanging test is
+    # caught earlier by the test runner's own timeout.
+    timeout-minutes: 40
+    env:
+      # One heap ceiling for the whole job, below the runner's memory, so an
+      # out-of-memory shows as a readable "heap limit" error, not exit 137.
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The production build type-checks only the app's module graph; tests and
+      # scripts outside it need their own pass.
+      - name: Typecheck
+        run: npm run typecheck --if-present
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build --if-present
+
+  integration:
+    name: Integration
+    needs: guards
+    uses: ./.github/workflows/integration-postgres.yml
+    with:
+      variant: service
+      migrations-dir: db/migrations

@@ -1,0 +1,29 @@
+{
+  "name": "mainstay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A quality system for AI-assisted development: invariant guards, ratchet budgets, CI gates, agent evals, a contract for the coding agent and the incident-to-guard loop.",
+  "license": "MIT",
+  "author": "Kamil Dashdamirov",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:guards": "vitest run guard.test",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "red": "node scripts/show-red.mjs",
+    "metrics": "node metrics/baseline.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12",
+    "yaml": "^2.9.1"
+  }
+}
