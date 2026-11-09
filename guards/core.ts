@@ -239,7 +239,7 @@ function skipRegex(src: string, start: number): number {
     else if (c === "]") inClass = false;
     else if (c === "/" && !inClass) {
       i++;
-      while (i < src.length && /[a-z]/i.test(src[i])) i++;
+      while (i < src.length && /[a-z]/i.test(src.charAt(i))) i++;
       return i;
     }
     i++;
@@ -263,8 +263,8 @@ export function stripComments(src: string): string {
   let prevWord = "";
   let i = 0;
   while (i < src.length) {
-    const c = src[i];
-    const next = src[i + 1];
+    const c = src.charAt(i);
+    const next = src.charAt(i + 1);
 
     if (c === "/" && next === "/") {
       while (i < src.length && src[i] !== "\n") {
@@ -314,10 +314,10 @@ export function stripComments(src: string): string {
     }
     if (IDENT_START.test(c)) {
       let j = i + 1;
-      while (j < src.length && IDENT_PART.test(src[j])) j++;
+      while (j < src.length && IDENT_PART.test(src.charAt(j))) j++;
       const word = src.slice(i, j);
       out += word;
-      prevChar = word[word.length - 1];
+      prevChar = word.charAt(word.length - 1);
       prevWord = word;
       i = j;
       continue;

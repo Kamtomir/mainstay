@@ -19,9 +19,9 @@ export interface SuiteOptions {
   /** Shown when the rule test fails: what to do instead. */
   hint: string;
   /** Fewer scanned files than this means the guard is looking at the wrong place. */
-  minFiles?: number;
+  minFiles?: number | undefined;
   /** Files that must be in the scan, as paths from the root. */
-  mustSee?: string[];
+  mustSee?: string[] | undefined;
   /** Title and hint of the dead-entries test. */
   staleTitle?: string;
   staleHint?: string;

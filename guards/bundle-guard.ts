@@ -80,13 +80,13 @@ export function importSpecifiers(code: string): string[] {
   const specs: string[] = [];
   for (const m of code.matchAll(/^\s*(import|export)\s+(type\s+)?([^;]*?)\s*from\s*["']([^"']+)["']/gm)) {
     if (m[2]) continue;
-    const named = /^\{([\s\S]*)\}$/.exec(m[3].trim());
-    const names = named ? named[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const named = /^\{([\s\S]*)\}$/.exec((m[3] ?? "").trim());
+    const names = named ? (named[1] ?? "").split(",").map((s) => s.trim()).filter(Boolean) : [];
     if (names.length > 0 && names.every((s) => s.startsWith("type "))) continue;
-    specs.push(m[4]);
+    if (m[4]) specs.push(m[4]);
   }
-  for (const m of code.matchAll(/^\s*import\s+["']([^"']+)["']/gm)) specs.push(m[1]);
-  for (const m of code.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)) specs.push(m[1]);
+  for (const m of code.matchAll(/^\s*import\s+["']([^"']+)["']/gm)) if (m[1]) specs.push(m[1]);
+  for (const m of code.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)) if (m[1]) specs.push(m[1]);
   return specs;
 }
 

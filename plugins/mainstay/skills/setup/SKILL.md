@@ -52,8 +52,10 @@ Run read-only commands and read files until you know:
   up.
 - **Configs**: the Vitest config and its `include` (the guards live in
   `test/guards/*.guard.test.ts`); `tsconfig.json`: `include`, `paths` (import
-  aliases), and the flags `noUncheckedIndexedAccess` and
-  `exactOptionalPropertyTypes`, which the copied helpers do not satisfy.
+  aliases), and the settings the copied helpers do not satisfy:
+  `noPropertyAccessFromIndexSignature`, `isolatedDeclarations`, and `module`
+  `node16`, `node18`, `node20` or `nodenext` in a package with
+  `"type": "module"` (their relative imports carry no file extension).
 - **API surface**: where route handlers live, and the call that protected ones
   make to check the session. Read three to five routes; look for the shared
   call (`requireUser(`, `auth(`, `getServerSession(`, `currentUser(`,
@@ -345,8 +347,11 @@ npx vitest run guard.test
 ```
 
 With pnpm, yarn or bun, use their exec form. Also run the project's typecheck
-when it has one: when the only errors are in `test/guards/*.ts` (stricter flags
-than the helpers satisfy), offer to exclude `test/guards` from that tsconfig.
+when it has one. The copied helpers pass `strict`, `noUncheckedIndexedAccess`,
+`exactOptionalPropertyTypes` and `verbatimModuleSyntax`; an error in them comes
+from a setting like those noted in step 1. When the only errors are in
+`test/guards/*.ts`, fix the ones in the guard files you wrote, and if the
+copied helpers still fail, offer to exclude `test/guards` from that tsconfig.
 Vitest does not type-check, so the guards still run.
 
 Show the findings grouped by guard, as a table: file, line, rule, and what it

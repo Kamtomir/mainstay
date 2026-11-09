@@ -1,0 +1,15 @@
+// The guard helpers are copied into other projects (test/guards), and those
+// projects type-check them with their own flags. This pass holds the helpers to
+// the strict flags such projects commonly add on top of `strict`. Tests and
+// examples are not copied, so they are not checked here. `npm run typecheck`
+// runs it after tsconfig.json.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["guards/*.ts"],
+  "exclude": ["guards/*.test.ts"]
+}

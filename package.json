@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:guards": "vitest run guard.test",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.guards.json",
     "check": "npm run typecheck && npm test",
     "red": "node scripts/show-red.mjs",
     "plugin:sync": "node scripts/sync-plugin.mjs",
