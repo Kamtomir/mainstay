@@ -2,8 +2,10 @@
 
 GitHub Actions templates for a guard-first pipeline, and the scripts they call.
 Every script has tests here; the templates themselves are checked by
-[templates.test.ts](templates.test.ts) (no secrets, explicit permissions, a
-timeout on every job, actions pinned to a version).
+[templates.test.ts](templates.test.ts): no secrets, explicit permissions, a
+timeout on every job, actions pinned to a version, and expressions that use only
+the contexts GitHub allows where they stand (a `job.` expression in a job's own
+`env` makes the whole file invalid).
 
 ## The pipeline
 

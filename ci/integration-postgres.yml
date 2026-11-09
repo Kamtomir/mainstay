@@ -61,10 +61,13 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
-      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/app_test
       MIGRATIONS_DIR: ${{ inputs.migrations-dir }}
     steps:
       - uses: actions/checkout@v4
+      # The job context, and with it the port the runner picked, exists only
+      # inside steps: a job-level env reading it makes the whole file invalid.
+      - name: Point the tests at the service
+        run: echo "TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/app_test" >> "$GITHUB_ENV"
       - name: Apply every migration to the empty database
         run: .github/scripts/apply-migrations.sh "$TEST_DATABASE_URL"
       - uses: actions/setup-node@v4

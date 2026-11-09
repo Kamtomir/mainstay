@@ -200,7 +200,8 @@ them.
   bash 3.2 (the macOS default), git, psql or Node 20+.
 - **Every script is tested.** should-run, the migration script, the watchdog, the
   pre-push hook and the metrics script all have tests with stubs; the workflow
-  templates have structural checks (no secrets, timeouts, pinned actions).
+  templates have structural checks (no secrets, timeouts, pinned actions,
+  contexts used only where GitHub allows them).
 - **Deterministic evals.** The agent evals test the server, not the model. Live
   model evals belong in a separate, non-blocking suite.
 

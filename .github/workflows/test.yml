@@ -65,10 +65,12 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
-      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/app_test
       MIGRATIONS_DIR: ci/integration/migrations
     steps:
       - uses: actions/checkout@v4
+      # The job context (and the service's port) exists only inside steps.
+      - name: Point the tests at the service
+        run: echo "TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/app_test" >> "$GITHUB_ENV"
       - run: ci/migrations/apply-migrations.sh "$TEST_DATABASE_URL"
       - uses: actions/setup-node@v4
         with:
