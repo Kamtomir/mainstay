@@ -13,7 +13,8 @@ no product code, migrations, prompts, community or member names, or secrets.
 ## The numbers
 
 As of 6 and 7 November 2026: CI run `42307651951` on `main` (6 November, 22:50
-UTC, the tip after the last merged PR) and the repository at that commit.
+UTC, the tip after the last merged PR) and the repository at that commit,
+`25307593`.
 
 | Number | What | Source |
 |---:|---|---|
@@ -24,7 +25,7 @@ UTC, the tip after the last merged PR) and the repository at that commit.
 | 1,373 | pull requests merged into `main` | GitHub |
 | 1,725 | commits in 238 days | the repository |
 | 363 | SQL migrations, across three databases | the repository |
-| 445k | lines of TypeScript in 2,483 source files, tests excluded | the repository |
+| 445k | lines of TypeScript in 2,478 source files of the app, tests excluded | the repository |
 | 143 | decision documents | the repository |
 
 The last 30 days, to 9 November 2026, measured with
@@ -42,7 +43,8 @@ The last 30 days, to 9 November 2026, measured with
 ## How to reproduce
 
 The CI log and the repository are private: the commands run in a checkout with
-read access. The author runs them live on request.
+read access, at commit `25307593` (later merges change the counts). The author
+runs them live on request.
 
 The test counts and durations come from the CI run log:
 
@@ -84,9 +86,9 @@ gh pr list --state merged --base main --limit 5000 --json number --jq length
 git rev-list --count HEAD
 git ls-files 'supabase/*migrations/*.sql' | wc -l
 
-# TypeScript source files and lines, tests excluded
-git ls-files '*.ts' '*.tsx' | grep -v -E '\.test\.|\.spec\.|/tests/' | wc -l
-git ls-files '*.ts' '*.tsx' | grep -v -E '\.test\.|\.spec\.|/tests/' | tr '\n' '\0' | xargs -0 cat | wc -l
+# TypeScript source files and lines of the app, tests excluded
+git ls-files 'nextjs/src/**/*.ts' 'nextjs/src/**/*.tsx' | grep -vcE '\.test\.tsx?$'
+git ls-files 'nextjs/src/**/*.ts' 'nextjs/src/**/*.tsx' | grep -vE '\.test\.tsx?$' | tr '\n' '\0' | xargs -0 cat | wc -l
 
 # decision documents
 git ls-files 'docs/*.md' | wc -l
