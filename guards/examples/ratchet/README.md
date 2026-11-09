@@ -41,8 +41,20 @@ What to do: grew: write it the sanctioned way instead, or raise that file's budg
 
 ## Other debts worth a ratchet
 
-`as any` and `@ts-ignore`, `eslint-disable` lines, `it.skip`, direct SQL outside
-the data layer, `console.log` in server code, TODOs without a ticket.
+`as any`, `it.skip`, direct SQL outside the data layer, `console.log` in server
+code. Debts that live in comments (`@ts-ignore`, `eslint-disable` lines, TODOs
+without a ticket) need `keepComments: true`: by default the ratchet blanks
+comments, so a rule can be explained in words next to the code.
+
+```ts
+ratchet({
+  name: "type escapes only go down",
+  root: "src",
+  patterns: [/\bas any\b/g, /@ts-ignore/g, /@ts-expect-error/g],
+  keepComments: true,
+  budget: { "lib/legacy-api.ts": 4 },
+});
+```
 
 ## Limits
 

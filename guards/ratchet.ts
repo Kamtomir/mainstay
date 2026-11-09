@@ -15,6 +15,10 @@
  *
  * Budgets can be grouped by category, so the review says why the debt exists:
  *
+ * Comments are blanked before counting, so a rule can be explained in words
+ * next to the code. Debts that live in comments (`@ts-ignore`,
+ * `eslint-disable`, TODOs) need `keepComments: true`.
+ *
  *   ratchet({
  *     name: "ad-hoc edition checks only go down",
  *     root: "src",
@@ -43,6 +47,8 @@ export interface RatchetOptions extends ListOptions {
   budget: Budget;
   /** Paths (prefixes or patterns) where the pattern is the module's job, e.g. the flag registry. */
   exempt?: (string | RegExp)[];
+  /** Count in comments too: needed for @ts-ignore, eslint-disable, TODO. Default: false. */
+  keepComments?: boolean;
   /** The scan must see at least this many files. Default: 1. */
   minFiles?: number;
   /** What to do instead of raising the budget. */
@@ -76,7 +82,7 @@ export function scanRatchet(options: RatchetOptions): GuardReport & { actual: Ma
   const files = readSources(root, options).filter((f) => !isExempt(f.rel, options.exempt));
   const actual = new Map<string, number>();
   for (const f of files) {
-    const n = countMatches(f.code, options.patterns);
+    const n = countMatches(options.keepComments ? f.text : f.code, options.patterns);
     if (n > 0) actual.set(f.rel, n);
   }
   const budget = flattenBudget(options.budget);

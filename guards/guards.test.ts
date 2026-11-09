@@ -150,6 +150,14 @@ describe("scanRatchet", () => {
     ]);
   });
 
+  it("keepComments counts debts that live in comments, like @ts-ignore", () => {
+    const root = tree({ "a.ts": "// @ts-ignore\nconst x: number = 'a';\n// @ts-ignore\nconst y: number = 'b';\n" });
+    expect([...scanRatchet({ name: "x", root, patterns: [/@ts-ignore/g], budget: {} }).actual]).toEqual([]);
+    const r = scanRatchet({ name: "x", root, patterns: [/@ts-ignore/g], budget: { "a.ts": 2 }, keepComments: true });
+    expect([...r.actual]).toEqual([["a.ts", 2]]);
+    expect(r.violations).toEqual([]);
+  });
+
   it("counts in code only and honours regex exemptions", () => {
     const root = tree({
       "a.ts": "// legacy() in a comment\nlegacy();\nlegacy();\n",
